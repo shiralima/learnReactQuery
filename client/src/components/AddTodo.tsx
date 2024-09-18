@@ -1,35 +1,36 @@
 import axios from "axios";
-import { Dispatch, SetStateAction, useRef } from "react";
-import { Todo } from "../common/types/todo.interface";
+import { useRef } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-interface AddTodoProps {
-  setTodos: Dispatch<SetStateAction<Todo[]>>;
-}
-
-export function AddTodo({ setTodos }: AddTodoProps) {
+export function AddTodo() {
   const bodyRef = useRef<HTMLInputElement | null>(null);
+  const queryClient = useQueryClient();
 
   const handleAddTodo = async (e: React.FormEvent<HTMLFormElement>) => {
-    debugger;
     e.preventDefault();
     try {
       const newTodo = bodyRef.current!.value;
       const { data: newId } = await axios.post<number>("/api/todos", {
         newTodo,
       });
-
-      setTodos((prev) => [
-        ...prev,
-        { body: newTodo, id: newId, completed: false, deleted: null },
-      ]);
       bodyRef.current!.value = "";
+
+      return newId;
+
     } catch (err) {
       alert("אירעה שגיאה...");
     }
   };
 
+
+  const { mutate } = useMutation({
+    mutationKey: ["todos"],
+    mutationFn: handleAddTodo,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] })
+  })
+
   return (
-    <form className="add-todo" onSubmit={handleAddTodo}>
+    <form className="add-todo" onSubmit={mutate}>
       <h2>New TODO</h2>
 
       <div className="body-container">
